@@ -1,0 +1,182 @@
+.settingsGrid{
+  display:grid;
+  gap:14px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 820px){
+  .settingsGrid{ grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 1200px){
+  .settingsGrid{ grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.card{
+  padding:14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.08);
+  background: rgba(10,12,22,0.75);
+}
+
+.cardTitle{
+  letter-spacing: 0.18em;
+  font-weight: 800;
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 10px;
+}
+
+.field{ display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+.field span{ font-size:12px; opacity:0.75; letter-spacing:0.08em; }
+
+.row2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+
+.toggleRow{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);
+}
+
+.muted{ margin-top:10px; font-size:12px; opacity:0.7; }
+
+.danger{ border-color: rgba(255,90,90,0.25); }
+.sep{ height:1px; background: rgba(255,255,255,0.06); margin:12px 0; }
+.dangerBtn{ border-color: rgba(255,90,90,0.35); }
+
+
+/*--------------------DROPDOWN----------------------*/
+
+/* Wrapper pour effet plus propre */
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  width: 100%;
+  padding: 14px 42px 14px 14px;
+
+  border-radius: 14px;
+  border: 1px solid rgba(120,170,255,0.25);
+
+  background:
+    linear-gradient(160deg, rgba(20,25,45,0.95), rgba(10,12,22,0.95));
+
+  color: rgba(220,230,255,0.9);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 14px;
+
+  outline: none;
+
+  transition: all 0.25s ease;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 20px rgba(90,150,255,0.08);
+}
+
+/* Hover */
+.select:hover {
+  border-color: rgba(120,170,255,0.5);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05) inset,
+    0 0 25px rgba(90,150,255,0.18);
+}
+
+/* Focus glow */
+.select:focus {
+  border-color: rgba(140,190,255,0.9);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05) inset,
+    0 0 35px rgba(120,170,255,0.4);
+}
+
+/* Flèche custom */
+.field {
+  position: relative;
+}
+
+.field .select {
+  background-image:
+    linear-gradient(160deg, rgba(20,25,45,0.95), rgba(10,12,22,0.95)),
+    url("data:image/svg+xml;utf8,<svg fill='rgba(180,200,255,0.8)' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat, no-repeat;
+  background-position: left top, right 14px center;
+  background-size: auto, 18px;
+}
+
+/* Option (limité par navigateur) */
+.select option {
+  background: #0d1122;
+  color: #dbe6ff;
+}
+
+
+
+
+/* ===== IMMERSION: THEME TOKENS ===== */
+:root{
+  --bg0: #070a14;
+  --bg1: rgba(10,12,22,0.75);
+  --panel: rgba(10,12,22,0.78);
+  --border: rgba(120,170,255,0.18);
+  --accent: rgba(120,170,255,0.75);
+  --text: rgba(220,230,255,0.92);
+  --muted: rgba(220,230,255,0.65);
+  --glow: 0.25;
+}
+
+/* Glow intensity */
+:root[data-glow="LOW"]  { --glow: 0.12; }
+:root[data-glow="MED"]  { --glow: 0.25; }
+:root[data-glow="HIGH"] { --glow: 0.42; }
+
+/* Themes */
+:root[data-theme="SHADOW_BLUE"]{
+  --accent: rgb(120, 170, 255);
+  --border: rgba(120,170,255,0.18);
+}
+:root[data-theme="SHADOW_PURPLE"]{
+  --accent: rgba(170,120,255,0.75);
+  --border: rgba(170,120,255,0.18);
+}
+:root[data-theme="CRIMSON"]{
+  --accent: rgba(255,90,110,0.75);
+  --border: rgba(255,90,110,0.20);
+}
+:root[data-theme="MINIMAL"]{
+  --accent: rgba(255,255,255,0.75);
+  --border: rgba(255,255,255,0.14);
+  --text: rgba(245,245,255,0.92);
+}
+
+/* Apply tokens to your cards/panels (adjust selectors if needed) */
+.card{
+  border-color: var(--border);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 40px rgba(120,170,255, calc(var(--glow) * 0.20));
+}
+.cardTitle{ color: var(--text); }
+.field span, .muted{ color: var(--muted); }
+
+/* If theme is not blue, adapt glow color using accent */
+.card{
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 40px rgba(120,170,255,0.0);
+}
+.card{
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 40px color-mix(in srgb, var(--accent) calc(var(--glow) * 100%), transparent);
+}
+
+/* Disable animations globally */
+:root[data-anim="off"] *{
+  animation: none !important;
+  transition: none !important;
+}
+
+
+.devActions { margin-top: 10px; }
+.devActions .sep { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }

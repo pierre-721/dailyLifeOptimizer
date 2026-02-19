@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Life Optimizer — System</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles_stats.css" />
+  <link rel="stylesheet" href="styles_settings.css" />
+
+
+  <!-- Supabase JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+  <div class="bg">
+    <div class="scanline"></div>
+    <div class="grain"></div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="sigil"></div>
+      <div>
+        <div class="brandTitle">SYSTEM</div>
+        <div class="brandSub">Daily Life Optimizer</div>
+      </div>
+    </div>
+    <button id="btnSync" class="btn ghost">SYNC</button>
+  </header>
+
+  <main class="shell">
+    <section class="dashboard">
+      <!-- LEFT / TOP: PROFILE -->
+      <article class="card hud" id="profileCard">
+        <div class="cardHeader">
+          <div class="chip">HUNTER STATUS</div>
+          <div class="rank" id="rankBadge">E</div>
+        </div>
+
+        <div class="profileRow">
+          <div class="stat">
+            <div class="label">LEVEL</div>
+            <div class="value" id="levelValue">1</div>
+          </div>
+          <div class="stat">
+            <div class="label">XP</div>
+            <div class="value" id="xpValue">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">STREAK</div>
+            <div class="value" id="streakValue">0</div>
+          </div>
+        </div>
+
+        <div class="xpWrap">
+          <div class="xpMeta">
+            <span id="xpMetaText">0 / 100</span>
+            <span id="todayText"></span>
+          </div>
+          <div class="xpBar">
+            <div class="xpFill" id="xpFill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="systemNote" id="systemNote">
+          SYSTEM: Initialisation…
+        </div>
+      </article>
+
+      <!-- RIGHT / BOTTOM: QUESTS -->
+      <article class="card hud">
+        <div class="cardHeader">
+          <div class="chip">DAILY QUESTS</div>
+          <button class="btn" id="btnAddHabit">+ NEW</button>
+        </div>
+
+        <div class="habitList" id="habitList"></div>
+
+        <div class="hint">
+          Astuce : difficulté ↑ = XP ↑. Vous pouvez utiliser cette base comme “quêtes sport / routine / focus”.
+        </div>
+      </article>
+    </section>
+    
+    <section id="statsView" class="statsView" hidden>
+      <article class="card hud">
+      <div class="cardHeader">
+        <div class="chip">PROGRESSION • LAST 12 WEEKS</div>
+        <button class="btn ghost" id="btnRefreshStats">REFRESH</button>
+      </div>
+
+      <div class="statsGrid">
+        <div class="statsBlock">
+          <div class="statsTitle">WEEK XP</div>
+          <div id="weekXpBars" class="bars"></div>
+        </div>
+
+        <div class="statsBlock">
+          <div class="statsTitle">HEATMAP</div>
+          <div id="heatmap" class="heatmap"></div>
+          <div class="statsHint" id="heatmapHint"></div>
+        </div>
+
+        <div class="statsBlock">
+          <div class="statsTitle">TOP QUESTS</div>
+          <div id="topQuests" class="topQuests"></div>
+        </div>
+        </div>
+      </article>
+    </section>
+
+    <section id="settingsView" class="settingsView" hidden>
+      <div class="panel">
+        <div class="panelHeader">
+          <div class="panelTitle">ELITE HUNTER SETTINGS</div>
+          <button class="btn ghost" id="btnBackHome">BACK</button>
+        </div>
+
+        <div class="settingsGrid">
+
+          <!-- HUNTER PROFILE -->
+          <div class="card">
+            <div class="cardTitle">HUNTER PROFILE</div>
+
+            <label class="field">
+              <span>Hunter Name</span>
+              <input id="setHunterName" class="input" type="text" maxlength="20">
+            </label>
+
+            <label class="field">
+              <span>Class</span>
+              <select id="setClass" class="select">
+                <option value="WARRIOR">WARRIOR</option>
+                <option value="SCHOLAR">SCHOLAR</option>
+                <option value="FOCUS">FOCUS</option>
+                <option value="HYBRID">HYBRID</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Mode</span>
+              <select id="setMode" class="select">
+                <option value="NORMAL">NORMAL</option>
+                <option value="HARD">HARD</option>
+                <option value="SPARTAN">SPARTAN</option>
+              </select>
+            </label>
+
+            <div class="muted" id="profileReadOnly"></div>
+          </div>
+
+          <!-- SYSTEM RULES -->
+          <div class="card">
+            <div class="cardTitle">SYSTEM RULES</div>
+
+            <label class="toggleRow">
+              <span>XP Multiplier</span>
+              <input id="setXpMultEnabled" type="checkbox">
+            </label>
+
+            <div class="row2">
+              <label class="field">
+                <span>T3</span>
+                <input id="setT3" class="input" type="number" step="0.01" min="1" max="2">
+              </label>
+              <label class="field">
+                <span>T7</span>
+                <input id="setT7" class="input" type="number" step="0.01" min="1" max="2">
+              </label>
+            </div>
+
+            <div class="row2">
+              <label class="field">
+                <span>T14</span>
+                <input id="setT14" class="input" type="number" step="0.01" min="1" max="3">
+              </label>
+              <label class="field">
+                <span>T30</span>
+                <input id="setT30" class="input" type="number" step="0.01" min="1" max="5">
+              </label>
+            </div>
+
+            <div class="row2">
+              <label class="field">
+                <span>XP Base</span>
+                <input id="setXpBase" class="input" type="number" min="10" max="1000">
+              </label>
+              <label class="field">
+                <span>XP/Level</span>
+                <input id="setXpPerLevel" class="input" type="number" min="1" max="200">
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Streak Mode</span>
+              <select id="setStreakMode" class="select">
+                <option value="STRICT">STRICT</option>
+                <option value="SOFT">SOFT</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Grace Days</span>
+              <input id="setGraceDays" class="input" type="number" min="0" max="1">
+            </label>
+          </div>
+
+          <!-- IMMERSION -->
+          <div class="card">
+            <div class="cardTitle">IMMERSION</div>
+
+            <label class="field">
+              <span>Theme</span>
+              <select id="setTheme" class="select">
+                <option value="SHADOW_BLUE">SHADOW BLUE</option>
+                <option value="SHADOW_PURPLE">SHADOW PURPLE</option>
+                <option value="CRIMSON">CRIMSON</option>
+                <option value="MINIMAL">MINIMAL</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Glow</span>
+              <select id="setGlow" class="select">
+                <option value="LOW">LOW</option>
+                <option value="MED">MED</option>
+                <option value="HIGH">HIGH</option>
+              </select>
+            </label>
+
+            <label class="toggleRow">
+              <span>Animations</span>
+              <input id="setAnimations" type="checkbox">
+            </label>
+
+            <label class="toggleRow">
+              <span>Sound FX</span>
+              <input id="setSfx" type="checkbox">
+            </label>
+
+            <label class="field">
+              <span>SFX Volume</span>
+              <input id="setSfxVolume" class="input" type="number" step="0.05" min="0" max="1">
+            </label>
+
+            <label class="toggleRow">
+              <span>Haptics</span>
+              <input id="setHaptics" type="checkbox">
+            </label>
+          </div>
+
+          <!-- DATA & DANGER ZONE -->
+          <div class="card danger">
+            <div class="cardTitle">DATA &amp; DANGER ZONE</div>
+
+            <button class="btn" id="btnExport">EXPORT JSON</button>
+
+            <div class="sep"></div>
+
+            <button class="btn warn" id="btnResetStreaks">RESET STREAKS</button>
+            <button class="btn warn" id="btnResetXp">RESET XP</button>
+            <button class="btn dangerBtn" id="btnResetAll">RESET SYSTEM</button>
+          </div>
+
+          <!-- DEV MODE -->
+          <div class="card">
+            <div class="cardTitle">DEV MODE</div>
+
+            <label class="toggleRow">
+              <span>Dev Mode</span>
+              <input id="setDevMode" type="checkbox">
+            </label>
+
+            <div id="devActions" class="devActions" hidden>
+              <div class="row2">
+                <button class="btn ghost" id="btnAdd100Xp">+100 XP</button>
+                <button class="btn ghost" id="btnAdd500Xp">+500 XP</button>
+              </div>
+
+              <div class="row2">
+                <button class="btn ghost" id="btnForceLevelUp">FORCE LEVEL UP</button>
+                <button class="btn ghost" id="btnSimulate7Days">SIMULATE 7 DAYS</button>
+              </div>
+
+              <div class="sep"></div>
+
+              <button class="btn warn" id="btnResetToday">RESET TODAY (LOCAL)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panelFooter">
+          <button class="btn" id="btnSaveSettings">SAVE SETTINGS</button>
+        </div>
+      </div>
+    </section>
+
+
+  </main>
+
+  <!-- MOBILE NAV (simple placeholder) -->
+  <nav class="bottomNav">
+    <button class="navBtn active" data-view="dashboard">Dashboard</button>
+    <button class="navBtn" data-view="stats">Stats</button>
+    <button class="navBtn" data-view="settings">Settings</button>
+  </nav>
+
+
+  <!-- MODAL -->
+  <div class="modalOverlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modalTitle">SYSTEM: NEW QUEST</div>
+
+      <label class="field">
+        <span>Nom de la quête</span>
+        <input id="habitTitle" type="text" placeholder="Ex: 40 min sport" maxlength="40" />
+      </label>
+
+      <label class="field">
+        <span>Difficulté (1–5)</span>
+        <input id="habitDifficulty" type="number" min="1" max="5" value="2" />
+      </label>
+
+      <div class="modalActions">
+        <button class="btn ghost" id="btnCancel">CANCEL</button>
+        <button class="btn" id="btnCreate">CONFIRM</button>
+      </div>
+    </div>
+  </div>
+<!--
+  <div id="levelUpOverlay" class="levelUpOverlay" hidden>
+    <div class="levelUpBox">
+      <div class="levelUpTitle">LEVEL UP</div>
+      <div class="levelUpSub" id="levelUpText"></div>
+    </div>
+  </div>
+-->
+  <div id="levelUpOverlay" class="levelUpOverlay" hidden>
+  <div class="levelUpFlash"></div>
+
+  <div class="levelUpBox">
+    <div class="levelUpFrame"></div>
+
+    <div class="levelUpTitle">LEVEL UP</div>
+    <div class="levelUpSub" id="levelUpText"></div>
+
+    <div class="levelUpParticles" id="levelUpParticles"></div>
+  </div>
+</div>
+
+
+  <div class="toastHost" id="toastHost"></div>
+
+  <script src="supabaseClient.js"></script>
+  <script src="settings.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
