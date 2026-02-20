@@ -207,12 +207,13 @@ body{
 /* Bottom nav (mobile) */
 .bottomNav{
   position:fixed; left:0; right:0; bottom:0;
-  display:none;
+  display:flex;
   gap:10px;
   padding: 10px var(--pad) 14px;
   background: linear-gradient(180deg, rgba(10,14,28,0), rgba(10,14,28,.84));
   backdrop-filter: blur(14px);
   border-top:1px solid rgba(255,255,255,.08);
+  z-index: 20;
 }
 .navBtn{
   flex:1;
@@ -288,62 +289,20 @@ body{
   .toastHost{right: 12px; bottom: 92px}
 }
 
-
-
-/*
-
-.levelUpOverlay {
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(30,60,140,0.25), rgba(0,0,0,0.85));
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.levelUpOverlay[hidden] {
-  display: none !important;
-}
-
-.levelUpBox {
-  text-align: center;
-  padding: 40px 60px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, rgba(20,30,60,0.95), rgba(10,15,30,0.95));
-  border: 1px solid rgba(100,150,255,0.4);
-  box-shadow:
-    0 0 40px rgba(80,130,255,0.6),
-    0 0 80px rgba(80,130,255,0.3);
-  transform: scale(0.8);
-  opacity: 0;
-  animation: levelUpAnim 0.6s ease-out forwards;
-}
-
-.levelUpTitle {
-  font-size: 28px;
-  letter-spacing: 6px;
-  font-weight: 700;
-  color: #9fc6ff;
-  text-shadow: 0 0 15px rgba(120,170,255,0.8);
-}
-
-.levelUpSub {
-  margin-top: 12px;
-  font-size: 16px;
-  color: #cfe0ff;
-  letter-spacing: 2px;
-}
-
-@keyframes levelUpAnim {
-  to {
-    transform: scale(1);
-    opacity: 1;
+/* Desktop/tablette : on la transforme en barre "en haut" sous le header */
+@media (min-width: 901px){
+  .bottomNav{
+    position: fixed;
+    border-top: none;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    background: rgba(10,14,28,.55);
+    padding: 10px var(--pad);
   }
+
+  /* on évite d’avoir trop d’espace en bas sur desktop */
+  .shell{ padding-bottom: 18px; }
 }
 
-*/
 
 .levelUpOverlay {
   position: fixed;
