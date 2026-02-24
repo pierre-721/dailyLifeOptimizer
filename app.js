@@ -1,5 +1,8 @@
 const sb = window.supabaseClient;
 
+const audioLevelUp = new Audio('./sounds/solo_leveling_menu_pop.mp3');
+const audio = new Audio('./sounds/solo_leveling_counter.mp3');
+
 const els = {
   btnSync: document.getElementById("btnSync"),
   rankBadge: document.getElementById("rankBadge"),
@@ -29,16 +32,14 @@ const els = {
   heatmapHint : document.getElementById("heatmapHint"),
   topQuests : document.getElementById("topQuests"),
 
-  settingsView: document.getElementById("settingsView")
-
-
+  settingsView: document.getElementById("settingsView"),
 };
 
 const state = {
   user: null,
   profile: { level: 1, xp: 0, rank: "E" },
   habits: [],
-  logsToday: new Map(), // habit_id -> completed
+  logsToday: new Map(),
 };
 
 const xpNeeded = (level) => 100 + (level - 1) * 25;
@@ -100,7 +101,6 @@ function render() {
     const right = document.createElement("div");
     right.className = "habitRight";
 
-
     const check = document.createElement("div");
     check.className = "check" + (done ? " on" : "");
     check.innerHTML = done ? "✓" : "";
@@ -133,21 +133,26 @@ function render() {
     badge2.className = "badge";
     badge2.textContent = `STREAK ${cur} • BEST ${best}`;
 
+    if (done) {
+      item.classList.add("questCompleted");
+    }
+
     const mult =
-  cur >= 30 ? 1.35 :
-  cur >= 14 ? 1.20 :
-  cur >= 7  ? 1.10 :
-  cur >= 3  ? 1.05 : 1.00;
+      cur >= 30 ? 1.35 :
+      cur >= 14 ? 1.20 :
+      cur >= 7  ? 1.10 :
+      cur >= 3  ? 1.05 : 1.00;
+
+    if (cur >= 7) {
+      document.querySelector(".xpBarFill").classList.add("xpAuraStrong");
+    }
   
-  badge2.textContent = mult > 1
-  ? `STREAK ${cur} • x${mult.toFixed(2)}`
-  : `STREAK ${cur} • BEST ${best}`;
-
-
+    badge2.textContent = mult > 1
+    ? `STREAK ${cur} • x${mult.toFixed(2)}`
+    : `STREAK ${cur} • BEST ${best}`;
 
     right.appendChild(badge1);
     right.appendChild(badge2);
-
 
     item.appendChild(left);
     item.appendChild(right);
@@ -270,45 +275,13 @@ async function applyXP(delta) {
 
   if (error) throw error;
 }
-/*
-async function toggleHabitToday(habit) {
-  const day = todayISO();
-  const currently = state.logsToday.get(habit.id) === true;
-  const next = !currently;
-
-  // upsert log
-  const { error } = await sb.from("dlo_habit_logs").upsert({
-    user_id: state.user.id,
-    habit_id: habit.id,
-    day,
-    completed: next,
-  }, { onConflict: "user_id,habit_id,day" });
-
-  if (error) throw error;
-
-  state.logsToday.set(habit.id, next);
-
-  // XP gain/loss (MVP)
-  if (next) {
-    await applyXP(habit.xp_reward);
-    toast(`SYSTEM: +${habit.xp_reward} XP`);
-    els.systemNote.textContent = `SYSTEM: Quest completed — ${habit.title}`;
-  } else {
-    // On retire l’XP (optionnel : vous pouvez décider de ne pas retirer)
-    await applyXP(-habit.xp_reward);
-    toast(`SYSTEM: -${habit.xp_reward} XP (rollback)`);
-    els.systemNote.textContent = `SYSTEM: Quest reverted — ${habit.title}`;
-  }
-
-  render();
-}*/
-
 
 async function toggleHabitToday(habit) {
   const day = todayISO();
   const currently = state.logsToday.get(habit.id) === true;
   const previousLevel = state.profile.level;
   const next = !currently;
+  const oldLevel = state.profile.level;
 
   const { data, error } = await sb.rpc("dlo_toggle_quest_v2", {
     p_habit_id: habit.id,
@@ -336,7 +309,6 @@ async function toggleHabitToday(habit) {
   state.profile.level = row.o_level;
   state.profile.xp    = row.o_xp;
   state.profile.rank  = row.o_rank;
-
 
   if (row.o_level > previousLevel) {
     showLevelUp(previousLevel, row.o_level);
@@ -396,14 +368,12 @@ async function refreshAll() {
 }
 
 function bindModalEvents() {
-  // Ouvrir
   els.btnAddHabit.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
     openModal();
   });
 
-  // Fermer quand on clique sur l'overlay (en dehors de la modale)
   els.modalOverlay.addEventListener("click", (e) => {
     if (e.target === els.modalOverlay) {
       e.preventDefault();
@@ -411,7 +381,6 @@ function bindModalEvents() {
     }
   });
 
-  // Fermer avec Échap
   document.addEventListener("keydown", (e) => {
     if (!els.modalOverlay.hidden && e.key === "Escape") {
       e.preventDefault();
@@ -559,7 +528,6 @@ async function renderStats() {
     xpByHabit.set(r.habit_id, (xpByHabit.get(r.habit_id) ?? 0) + r.xp_gain);
   }
 
-  // map id->title depuis state.habits
   const titleById = new Map(state.habits.map(h => [h.id, h.title]));
 
   const top = [...xpByHabit.entries()]
@@ -595,13 +563,11 @@ async function setView(view) {
   els.statsView.hidden = true;
   if (els.settingsView) els.settingsView.hidden = true;
 
-  // Dashboard
   if (view === "dashboard") {
     dashboard.style.display = "";
     return;
   }
 
-  // Stats
   if (view === "stats") {
     dashboard.style.display = "none";
     els.statsView.hidden = false;
@@ -609,7 +575,6 @@ async function setView(view) {
     return;
   }
 
-  // Settings
   if (view === "settings") {
     dashboard.style.display = "none";
     if (!els.settingsView) {
@@ -649,11 +614,9 @@ function spawnParticles(count = 18) {
     p.style.setProperty("--x1", x1);
     p.style.setProperty("--y1", y1);
 
-    // position de base au centre du panel
     p.style.left = "50%";
     p.style.top = "52%";
 
-    // léger décalage d'apparition
     p.style.animationDelay = (Math.random() * 120).toFixed(0) + "ms";
 
     host.appendChild(p);
@@ -671,14 +634,17 @@ function showLevelUp(oldLevel, newLevel) {
   overlay.classList.add("shake");
 
   spawnParticles(22);
-  playSfx("levelup");
+  audioLevelUp.play();
   vibrate([20, 30, 20]); // (iOS ignore parfois)
 
   setTimeout(() => overlay.classList.remove("shake"), 450);
   setTimeout(() => { overlay.hidden = true; }, 3500);
 }
 
-
+function vibrate(pattern) {
+  if (!window.__HAPTICS__) return;
+  if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(_){} }
+}
 
 //---------------------------------------------------------------//
 
@@ -734,21 +700,14 @@ function playSfx(kind) {
     setTimeout(() => beep({ freq: 220, dur: 0.10, type: "sine", gain: 0.05 }), 170);
   }
 }
-
-function vibrate(pattern) {
-  if (!window.__HAPTICS__) return;
-  if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(_){} }
-}
-
+//---------------------------------------------------------------//
 
 
 //-----------------------------------------------------------------//
 
-
-
-
 async function main() {
   try {
+    
     els.systemNote.textContent = "SYSTEM: Connecting…";
 
     await ensureAnonymousSession();
@@ -794,7 +753,6 @@ async function main() {
         els.btnCreate.disabled = true;
         
         try {
-            // Option : fermer immédiatement pour une sensation plus fluide
             closeModal();
             await addHabit(title, els.habitDifficulty.value);
             await refreshAll();
@@ -802,9 +760,6 @@ async function main() {
         } catch (err) {
             console.error(err);
             toast("SYSTEM: Error (voir console).");
-            // Si vous préférez garder la modale ouverte en cas d'erreur,
-            // commentez le closeModal() plus haut et décommentez ici :
-            // openModal();
         } finally {
             els.btnCreate.disabled = false;
         }
