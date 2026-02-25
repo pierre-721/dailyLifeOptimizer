@@ -14,8 +14,11 @@ const els = {
   todayText: document.getElementById("todayText"),
   systemNote: document.getElementById("systemNote"),
 
-  habitList: document.getElementById("habitList"),
-  btnAddHabit: document.getElementById("btnAddHabit"),
+  fixedHabitList : document.getElementById("fixedHabitList"),
+  customHabitList : document.getElementById("customHabitList"),
+  dailyTimer : document.getElementById("dailyTimer"),
+  btnNewSide : document.getElementById("btnNewSide"),
+
 
   modalOverlay: document.getElementById("modalOverlay"),
   habitTitle: document.getElementById("habitTitle"),
@@ -44,6 +47,24 @@ const state = {
 
 const xpNeeded = (level) => 100 + (level - 1) * 25;
 
+function scaledTarget(habit, level){
+  const base = habit.base_target ?? 0;
+  const step = habit.target_step ?? 0;
+  const every = habit.target_step_levels ?? 4;
+  if (!step) return base;
+  const tier = Math.floor((level - 1) / every);
+  return base + tier * step;
+}
+
+function scaledXP(habit, level){
+  const base = habit.base_xp ?? habit.xp_reward ?? 0;
+  const step = habit.xp_step ?? 0;
+  const every = habit.xp_step_levels ?? 4;
+  if (!step) return base;
+  const tier = Math.floor((level - 1) / every);
+  return base + tier * step;
+}
+
 function todayISO() {
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -69,6 +90,116 @@ function computeRank(level) {
   return "E";
 }
 
+
+function msToMidnight() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(24, 0, 0, 0); // minuit prochain
+  return next - now;
+}
+
+function formatHMS(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const hh = String(Math.floor(s/3600)).padStart(2,"0");
+  const mm = String(Math.floor((s%3600)/60)).padStart(2,"0");
+  const ss = String(s%60).padStart(2,"0");
+  return `${hh}:${mm}:${ss}`;
+}
+
+let _timerId = null;
+function startDailyTimer(){
+  if (_timerId) clearInterval(_timerId);
+
+  const tick = async () => {
+    const ms = msToMidnight();
+    els.dailyTimer.textContent = formatHMS(ms);
+
+    // Si on passe minuit (ou très proche), on refresh + on applique pénalités
+    if (ms < 900) { // <0.9s
+      await applyDailyPenaltiesIfNeeded();
+      await refreshAll();
+      render();
+    }
+  };
+
+  tick();
+  _timerId = setInterval(tick, 1000);
+}
+
+function buildHabitItem(h, lvl) {
+  const done = state.logsToday.get(h.id) === true;
+
+  const streak = state.streaksByHabit.get(h.id);
+  const cur = streak?.current_streak ?? 0;
+  const best = streak?.best_streak ?? 0;
+
+  const item = document.createElement("div");
+  item.className = "habitItem";
+  if (done) item.classList.add("questCompleted");
+
+  const left = document.createElement("div");
+  left.className = "habitLeft";
+
+  const right = document.createElement("div");
+  right.className = "habitRight";
+
+  const check = document.createElement("div");
+  check.className = "check" + (done ? " on" : "");
+  check.innerHTML = done ? "✓" : "";
+  check.title = "Toggle";
+  check.style.cursor = "pointer";
+  check.addEventListener("click", () => toggleHabitToday(h));
+
+  const text = document.createElement("div");
+  text.className = "habitText";
+
+  const title = document.createElement("div");
+  title.className = "title";
+  title.textContent = h.title;
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+
+  if (h.kind === "fixed") {
+    const target = scaledTarget(h, lvl);
+    const reward = scaledXP(h, lvl);
+    meta.textContent = `OBJECTIF ${target} ${h.metric ?? ""} • REWARD +${reward} XP`;
+  } else {
+    meta.textContent = `DIFFICULTY ${h.difficulty} • REWARD +${h.xp_reward} XP`;
+  }
+
+  text.appendChild(title);
+  text.appendChild(meta);
+
+  left.appendChild(check);
+  left.appendChild(text);
+
+  const badge1 = document.createElement("div");
+  badge1.className = "badge " + (done ? "good" : "warn");
+  badge1.textContent = done ? "COMPLETED" : "PENDING";
+
+  const mult =
+    cur >= 30 ? 1.35 :
+    cur >= 14 ? 1.20 :
+    cur >= 7  ? 1.10 :
+    cur >= 3  ? 1.05 : 1.00;
+
+  //const badge2 = document.createElement("div");
+  //badge2.className = "badge";
+  //badge2.textContent = mult > 1
+  //  ? `STREAK ${cur} • x${mult.toFixed(2)}`
+  //  : `STREAK ${cur} • BEST ${best}`;
+
+  right.appendChild(badge1);
+  //right.appendChild(badge2);
+
+  item.appendChild(left);
+  item.appendChild(right);
+
+  return item;
+}
+
+
 function render() {
   const { level, xp } = state.profile;
   const need = xpNeeded(level);
@@ -85,10 +216,61 @@ function render() {
   const doneToday = [...state.logsToday.values()].filter(Boolean).length;
   els.streakValue.textContent = doneToday;
 
+  // split fixed vs custom
+  els.fixedHabitList.innerHTML = "";
+  els.customHabitList.innerHTML = "";
+
+  const fixed = state.habits.filter(h => h.kind === "fixed");
+  const custom = state.habits.filter(h => h.kind !== "fixed");
+
+  for (const h of fixed) {
+    els.fixedHabitList.appendChild(buildHabitItem(h, level));
+  }
+
+  for (const h of custom) {
+    els.customHabitList.appendChild(buildHabitItem(h, level));
+  }
+}
+
+
+/*
+function render() {
+
+  const { level, xp } = state.profile;
+  const need = xpNeeded(level);
+  const pct = Math.min(100, Math.round((xp / need) * 100));
+
+  els.levelValue.textContent = level;
+  els.xpValue.textContent = xp;
+  els.rankBadge.textContent = state.profile.rank;
+  els.xpMetaText.textContent = `${xp} / ${need}`;
+  els.xpFill.style.width = `${pct}%`;
+  els.todayText.textContent = todayISO();
+
+  // streak simple: nombre de quêtes cochées aujourd’hui (MVP)
+  const doneToday = [...state.logsToday.values()].filter(Boolean).length;
+  els.streakValue.textContent = doneToday;
+
+  els.fixedHabitList.innerHTML = "";
+  els.customHabitList.innerHTML = "";
+  
+  const fixed = state.habits.filter(h => h.kind === "fixed");
+  const custom = state.habits.filter(h => h.kind !== "fixed");
+  for (const h of fixed) {
+    els.fixedHabitList.appendChild(buildHabitItem(h));
+  }
+  for (const h of custom) {
+    els.customHabitList.appendChild(buildHabitItem(h));
+  }
+
   // habits list
-  els.habitList.innerHTML = "";
+  els.customHabitList.innerHTML = "";
+  const lvl = state.profile.level; // une fois, pas dans la boucle
+
   for (const h of state.habits) {
+    
     const done = state.logsToday.get(h.id) === true;
+
     const streak = state.streaksByHabit.get(h.id);
     const cur = streak?.current_streak ?? 0;
     const best = streak?.best_streak ?? 0;
@@ -98,6 +280,7 @@ function render() {
 
     const left = document.createElement("div");
     left.className = "habitLeft";
+
     const right = document.createElement("div");
     right.className = "habitRight";
 
@@ -117,7 +300,14 @@ function render() {
 
     const meta = document.createElement("div");
     meta.className = "meta";
-    meta.textContent = `DIFFICULTY ${h.difficulty} • REWARD +${h.xp_reward} XP`;
+
+    if (h.kind === "fixed") {
+      const target = scaledTarget(h, lvl);
+      const reward = scaledXP(h, lvl);
+      meta.textContent = `OBJECTIF ${target} ${h.metric ?? ""} • REWARD +${reward} XP`;
+    } else {
+      meta.textContent = `DIFFICULTY ${h.difficulty} • REWARD +${h.xp_reward} XP`;
+    }
 
     text.appendChild(title);
     text.appendChild(meta);
@@ -128,14 +318,6 @@ function render() {
     const badge1 = document.createElement("div");
     badge1.className = "badge " + (done ? "good" : "warn");
     badge1.textContent = done ? "COMPLETED" : "PENDING";
-    
-    const badge2 = document.createElement("div");
-    badge2.className = "badge";
-    badge2.textContent = `STREAK ${cur} • BEST ${best}`;
-
-    if (done) {
-      item.classList.add("questCompleted");
-    }
 
     const mult =
       cur >= 30 ? 1.35 :
@@ -143,13 +325,13 @@ function render() {
       cur >= 7  ? 1.10 :
       cur >= 3  ? 1.05 : 1.00;
 
-    if (cur >= 7) {
-      document.querySelector(".xpBarFill").classList.add("xpAuraStrong");
-    }
-  
+    const badge2 = document.createElement("div");
+    badge2.className = "badge";
     badge2.textContent = mult > 1
-    ? `STREAK ${cur} • x${mult.toFixed(2)}`
-    : `STREAK ${cur} • BEST ${best}`;
+      ? `STREAK ${cur} • x${mult.toFixed(2)}`
+      : `STREAK ${cur} • BEST ${best}`;
+
+    if (done) item.classList.add("questCompleted");
 
     right.appendChild(badge1);
     right.appendChild(badge2);
@@ -160,7 +342,7 @@ function render() {
     els.habitList.appendChild(item);
   }
 }
-
+*/
 async function ensureAnonymousSession() {
   // Si session déjà présente -> ok
   const { data: sessionData } = await sb.auth.getSession();
@@ -248,6 +430,7 @@ async function addHabit(title, difficulty) {
     title,
     difficulty: diff,
     xp_reward: reward,
+    kind: "custom"
   });
 
   if (error) throw error;
@@ -283,7 +466,7 @@ async function toggleHabitToday(habit) {
   const next = !currently;
   const oldLevel = state.profile.level;
 
-  const { data, error } = await sb.rpc("dlo_toggle_quest_v2", {
+  const { data, error } = await sb.rpc("dlo_toggle_quest_v3", {
     p_habit_id: habit.id,
     p_day: day,
     p_completed: next
@@ -368,7 +551,7 @@ async function refreshAll() {
 }
 
 function bindModalEvents() {
-  els.btnAddHabit.addEventListener("click", (e) => {
+  els.btnNewSide.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
     openModal();
@@ -702,6 +885,30 @@ function playSfx(kind) {
 }
 //---------------------------------------------------------------//
 
+async function applyDailyPenaltiesIfNeeded() {
+  try {
+    // hier (YYYY-MM-DD)
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const yesterday = d.toISOString().slice(0, 10);
+
+    const { data, error } = await sb.rpc("dlo_apply_daily_penalties", {
+      p_day: yesterday
+    });
+
+    if (error) {
+      console.error("dlo_apply_daily_penalties error:", error);
+      return;
+    }
+
+    const row = data?.[0];
+    if (row && row.xp_penalty > 0) {
+      toast(`SYSTEM: Daily penalty -${row.xp_penalty} XP`);
+    }
+  } catch (err) {
+    console.error("applyDailyPenaltiesIfNeeded failed:", err);
+  }
+}
 
 //-----------------------------------------------------------------//
 
@@ -711,7 +918,10 @@ async function main() {
     els.systemNote.textContent = "SYSTEM: Connecting…";
 
     await ensureAnonymousSession();
+    await sb.rpc("dlo_seed_fixed_habits");
     await refreshAll();
+    await applyDailyPenaltiesIfNeeded();
+    startDailyTimer();
 
     document.querySelectorAll(".navBtn").forEach(btn => {
       btn.addEventListener("click", () => setView(btn.dataset.view));
@@ -740,8 +950,7 @@ async function main() {
       await refreshAll();
     });
 
-    els.btnAddHabit.addEventListener("click", openModal);
-    //els.btnCancel.addEventListener("click", closeModal);
+    els.btnNewSide.addEventListener("click", openModal);
 
     els.btnCreate.addEventListener("click", async (e) => {
         e.preventDefault();

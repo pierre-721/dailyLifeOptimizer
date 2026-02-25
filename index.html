@@ -75,12 +75,29 @@
 
       <!-- RIGHT / BOTTOM: QUESTS -->
       <article class="card hud">
-        <div class="cardHeader">
-          <div class="chip">DAILY QUESTS</div>
-          <button class="btn" id="btnAddHabit">+ NEW</button>
-        </div>
+        <section class="card">
+          <div class="cardHeader">
+    <div class="chip">DAILY QUESTS</div>
+    <div class="chip" id="dailyTimer">--:--:--</div>
+  </div>
 
-        <div class="habitList" id="habitList"></div>
+  <details id="fixedToggle" open>
+    <summary class="toggleSummary">Afficher / cacher</summary>
+    <div id="fixedHabitList" class="habitList"></div>
+  </details>
+</section>
+
+        <section class="card">
+          <div class="cardHeader">
+            <div class="chip">SIDE QUESTS</div>
+            <button class="btn" id="btnNewSide">+ NEW</button>
+          </div>
+
+          <div id="customHabitList" class="habitList"></div>
+        </section>
+          
+
+        <!--<div class="habitList" id="habitList"></div>-->
 
         <div class="hint">
           Astuce : difficulté ↑ = XP ↑. Vous pouvez utiliser cette base comme “quêtes sport / routine / focus”.

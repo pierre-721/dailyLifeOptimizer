@@ -103,7 +103,9 @@ body{
   backdrop-filter: blur(18px);
 }
 .cardHeader{
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex;
+  align-items:center; 
+  justify-content:space-between;
   padding: 14px 14px 10px;
   border-bottom:1px solid rgba(255,255,255,.06);
 }
@@ -111,6 +113,17 @@ body{
   font-size:11px; letter-spacing:.22em; font-weight:700;
   color:rgba(230,240,255,.76);
 }
+.toggleSummary{
+  display:flex;
+  align-items:center; 
+  justify-content:space-between;
+  cursor:pointer;
+  padding: 10px 0;
+  font-size:11px;
+}
+
+details[open] .toggleSummary{ opacity:.9; }
+
 .rank{
   width:34px; height:34px; display:grid; place-items:center;
   border-radius: 12px;
@@ -183,10 +196,11 @@ body{
 }
 .habitLeft{display:flex; align-items:center; gap:12px; min-width:0}
 .check{
-  width:26px; height:26px; border-radius: 10px;
+  width:20px; height:20px;
   border:1px solid rgba(255,255,255,.16);
   background: rgba(0,0,0,.18);
   display:grid; place-items:center;
+  font-size: smaller;
 }
 .check.on{border-color: rgba(47,227,156,.55); box-shadow: 0 0 18px rgba(47,227,156,.18)}
 .title{font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -426,3 +440,4 @@ body{
   50%{ box-shadow:0 0 30px rgba(47,227,156,.4); }
   100%{ box-shadow:0 0 0 rgba(47,227,156,0); }
 }
+
